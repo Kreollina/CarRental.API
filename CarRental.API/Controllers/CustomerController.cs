@@ -1,4 +1,6 @@
-﻿using CarRental.API.Models;
+﻿using AutoMapper;
+using CarRental.API.DTOs;
+using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +11,12 @@ namespace CarRental.API.Controllers
     public class CustomerController : Controller
     {
         private ICustomerRepository _customerRepository;
+        private IMapper _mapper;
 
-        public CustomerController(ICustomerRepository customerRepo)
+        public CustomerController(ICustomerRepository customerRepo, IMapper mapper)
         {
             _customerRepository = customerRepo;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -34,21 +38,26 @@ namespace CarRental.API.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateCustomerAsync(Customer customer)
+        public async Task<IActionResult> CreateCustomerAsync(CustomerDTO customerDTO)
         {
-            _customerRepository.AddCustomerAsync(customer);
-            return Ok(customer);
+            var mapCustomer = _mapper.Map<Customer>(customerDTO);
+            var addCustomer = await _customerRepository.AddCustomerAsync(mapCustomer);
+            var newCustomer = _mapper.Map<CustomerDTO>(addCustomer);
+            return Ok(newCustomer);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateCustomerAsync(int id, Customer customerUpdate)
+        public async Task<IActionResult> UpdateCustomerAsync(int id, CustomerDTO customerDTO)
         {
-            var updatedCustomer = await _customerRepository.UpdateCustomerAsync(id, customerUpdate);
-            if (updatedCustomer == null)
+            var customer = await _customerRepository.GetCustomerByIdAsync(id);
+            if (customer == null)
             {
                 return NotFound();
             }
-            return Ok(updatedCustomer);
+            var mapCustomer = _mapper.Map<Customer>(customerDTO);
+            var updatedCustomer = await _customerRepository.UpdateCustomerAsync(id, mapCustomer);
+            var newCustomerDTO = _mapper.Map<CustomerDTO>(updatedCustomer);
+            return Ok(newCustomerDTO);
         }
 
         [HttpDelete("{id:int}")]

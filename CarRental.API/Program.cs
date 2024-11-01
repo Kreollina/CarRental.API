@@ -14,6 +14,7 @@ namespace CarRental.API
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddCarRentalServices();
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var app = builder.Build();
 

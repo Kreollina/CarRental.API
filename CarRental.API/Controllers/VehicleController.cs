@@ -1,4 +1,6 @@
-﻿using CarRental.API.Models;
+﻿using AutoMapper;
+using CarRental.API.DTOs;
+using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +11,11 @@ namespace CarRental.Api.Controllers
     public class VehicleController : Controller
     {
         private IVehicleRepository _vehicleRepository;
-        public VehicleController(IVehicleRepository vehicleRepo)
+        private IMapper _mapper;
+        public VehicleController(IVehicleRepository vehicleRepo, IMapper mapper)
         {
             _vehicleRepository = vehicleRepo;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -32,10 +36,12 @@ namespace CarRental.Api.Controllers
             return Ok(vehicle);
         }
         [HttpPost]
-        public IActionResult CreateVehicleAsync(Vehicle vehicle)
+        public async Task<IActionResult> CreateVehicleAsync(VehicleDTO vehicleDTO)
         {
-            _vehicleRepository.AddVehicleAsync(vehicle);
-            return Ok(vehicle);
+            var mapVehicle = _mapper.Map<Vehicle>(vehicleDTO);
+            var addVehicle = await _vehicleRepository.AddVehicleAsync(mapVehicle);
+            var newVehicle = _mapper.Map<VehicleDTO>(addVehicle);
+            return Ok(newVehicle);
         }
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteVehicleAsync(int id)
