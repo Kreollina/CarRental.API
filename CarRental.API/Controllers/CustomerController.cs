@@ -23,8 +23,17 @@ namespace CarRental.API.Controllers
         public async Task<IActionResult> GetAllCustomersAsync()
         {
             var customers = await _customerRepository.GetCustomersAsync();
+            if (customers == null || !customers.Any())
+            {
+                return NotFound("No customers found.");
+            }
             return Ok(customers);
         }
+        //[HttpGet]
+        //public async Task ClearCache()
+        //{
+        //    _customerRepository.ClearCashe();
+        //}
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetCustomerByIdAsync(int id)

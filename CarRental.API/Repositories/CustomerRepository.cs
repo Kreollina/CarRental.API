@@ -123,6 +123,11 @@ namespace CarRental.API.Repositories
             return await Task.FromResult(customer);
         }
 
+        public void ClearCashe()
+        {
+            //Test method
+        }
+
         public async Task DeleteCustomerAsync(int id)
         {
             var customer = await GetCustomerByIdAsync(id);

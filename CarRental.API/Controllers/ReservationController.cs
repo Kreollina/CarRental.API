@@ -2,6 +2,8 @@
 using CarRental.API.DTOs;
 using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
+using CarRental.API.Validation;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRental.Api.Controllers
@@ -14,13 +16,16 @@ namespace CarRental.Api.Controllers
         private ICustomerRepository _customerRepository;
         private IVehicleRepository _vehicleRepository;
         private IMapper _mapper;
+        private IValidator<ReservationDTO> _validator;
 
-        public ReservationController(IReservationRepository reservationRepo, ICustomerRepository customerRepo, IVehicleRepository vehicleRepo, IMapper mapper)
+        public ReservationController(IReservationRepository reservationRepo, ICustomerRepository customerRepo,
+            IVehicleRepository vehicleRepo, IMapper mapper, IValidator<ReservationDTO> validator)
         {
             _reservationRepository = reservationRepo;
             _customerRepository = customerRepo;
             _vehicleRepository = vehicleRepo;
             _mapper = mapper;
+            _validator = validator;
         }
 
         [HttpGet]
@@ -44,34 +49,38 @@ namespace CarRental.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateReservationAsync(ReservationDTO reservationDTO)
         {
-            var mapReservation = _mapper.Map<Reservation>(reservationDTO);
-            var customerId = await _customerRepository.GetCustomerByIdAsync(mapReservation.CustomerID);
-            var vehicleId = await _vehicleRepository.GetVehicleByIdAsync(mapReservation.VehicleID);
-            var allReservations = await _reservationRepository.GetAllReservationsAsync();
-            var reservedVehicle = allReservations.FirstOrDefault(v => v.VehicleID == mapReservation.VehicleID);
+            var context = new ValidationContext<ReservationDTO>(reservationDTO);
 
-            if (customerId == null || vehicleId == null)
+            var customerId = await _customerRepository.GetCustomerByIdAsync(reservationDTO.CustomerID);
+            var vehicleId = await _vehicleRepository.GetVehicleByIdAsync(reservationDTO.VehicleID);
+            var allReservations = await _reservationRepository.GetAllReservationsAsync();
+            var reservedVehicle = allReservations.FirstOrDefault(r => r.VehicleID == reservationDTO.VehicleID
+                                                                && r.DateFrom < r.DateTo
+                                                                && r.DateTo > reservationDTO.DateFrom);
+
+            context.RootContextData["ActualVehicle"] = reservedVehicle;
+
+            var validationResult = _validator.Validate(context);
+
+            if (!validationResult.IsValid)
             {
-                return NotFound();
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
             }
+
             if (reservedVehicle != null)
             {
                 return BadRequest("The vehicle is already reserved.");
             }
-            if (mapReservation.DateFrom > mapReservation.DateTo || mapReservation.DateFrom < DateTime.Now || mapReservation.DateTo < DateTime.Now)
-            {
-                return BadRequest("The date range for vehicle reservation is incorrect.");
-            }
-            if (allReservations.FindAll(r => r.CustomerID == mapReservation.CustomerID).Count() > 3)
+
+            if (allReservations.FindAll(r => r.CustomerID == reservationDTO.CustomerID).Count() > 3)
             {
                 return BadRequest("The customer cannot have more than 3 reservations.");
             }
-            if ((mapReservation.DateTo - mapReservation.DateFrom) < TimeSpan.FromDays(3))
-            {
-                return BadRequest("Vehicle reservation time cannot be less than 3 days.");
-            }
+            var mapReservation = _mapper.Map<Reservation>(reservationDTO);
+            var reservation = await _reservationRepository.AddReservationAsync(mapReservation);
+            var newReservation = _mapper.Map<ReservationDTO>(reservation);
 
-            var newReservation = await _reservationRepository.AddReservationAsync(mapReservation);
             return Ok(newReservation);
         }
 

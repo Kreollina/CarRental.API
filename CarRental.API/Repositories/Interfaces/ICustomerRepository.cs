@@ -9,5 +9,6 @@ namespace CarRental.API.Repositories.Interfaces
         public Task<Customer> AddCustomerAsync(Customer customer);
         public Task<Customer> UpdateCustomerAsync(int id, Customer customerNew);
         public Task DeleteCustomerAsync(int id);
+        public void ClearCashe();
     }
 }
