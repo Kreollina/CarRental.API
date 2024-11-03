@@ -93,9 +93,9 @@ namespace CarRental.Api.Controllers
             {
                 return NotFound();
             }
-            if (mapReservation.DateTo < reservation.DateTo.AddDays(1))
+            if (reservation.DateFrom < DateTime.Now.AddDays(1))
             {
-                return BadRequest("The date cannot be changed for less than 1 day.");
+                return BadRequest("The date cannot be changed for less than 1 day before.");
             }
             var updateReservation = await _reservationRepository.UpdateReservationAsync(id, mapReservation);
             return Ok(updateReservation);
@@ -108,6 +108,10 @@ namespace CarRental.Api.Controllers
             if (reservation == null)
             {
                 return NotFound();
+            }
+            if (reservation.DateFrom < DateTime.Now.AddDays(2))
+            {
+                return BadRequest("The reservation cannot be canceled for less than 2 day before.");
             }
             await _reservationRepository.DeleteReservationAsync(id);
             return Ok();
