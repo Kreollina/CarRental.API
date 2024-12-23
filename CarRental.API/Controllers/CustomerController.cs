@@ -2,6 +2,8 @@
 using CarRental.API.DTOs;
 using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
+using CarRental.API.Validation;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRental.API.Controllers
@@ -12,11 +14,13 @@ namespace CarRental.API.Controllers
     {
         private ICustomerRepository _customerRepository;
         private IMapper _mapper;
+        private IValidator<CustomerDTO> _customerValidator;
 
-        public CustomerController(ICustomerRepository customerRepo, IMapper mapper)
+        public CustomerController(ICustomerRepository customerRepo, IMapper mapper, IValidator<CustomerDTO> customerValidator)
         {
             _customerRepository = customerRepo;
             _mapper = mapper;
+            _customerValidator = customerValidator;
         }
 
         [HttpGet]
@@ -29,11 +33,6 @@ namespace CarRental.API.Controllers
             }
             return Ok(customers);
         }
-        //[HttpGet]
-        //public async Task ClearCache()
-        //{
-        //    _customerRepository.ClearCashe();
-        //}
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetCustomerByIdAsync(int id)
@@ -49,6 +48,15 @@ namespace CarRental.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCustomerAsync(CustomerDTO customerDTO)
         {
+            var context = new ValidationContext<CustomerDTO>(customerDTO);
+            var validationResult = _customerValidator.Validate(context);
+
+            if (!validationResult.IsValid)
+            {
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
+            }
+
             var mapCustomer = _mapper.Map<Customer>(customerDTO);
             var addCustomer = await _customerRepository.AddCustomerAsync(mapCustomer);
             var newCustomer = _mapper.Map<CustomerDTO>(addCustomer);
@@ -63,6 +71,16 @@ namespace CarRental.API.Controllers
             {
                 return NotFound();
             }
+
+            var context = new ValidationContext<CustomerDTO>(customerDTO);
+            var validationResult = _customerValidator.Validate(context);
+
+            if (!validationResult.IsValid)
+            {
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
+            }
+
             var mapCustomer = _mapper.Map<Customer>(customerDTO);
             var updatedCustomer = await _customerRepository.UpdateCustomerAsync(id, mapCustomer);
             var newCustomerDTO = _mapper.Map<CustomerDTO>(updatedCustomer);

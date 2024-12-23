@@ -19,7 +19,6 @@ namespace CarRental.API
 
             builder.Services.AddCarRentalServices();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-            builder.Services.AddTransient<IValidator<ReservationDTO>, ReservationValidator>();
             builder.Services.AddTransient<IValidator<CustomerDTO>, CustomerValidator>();
 
             var app = builder.Build();
