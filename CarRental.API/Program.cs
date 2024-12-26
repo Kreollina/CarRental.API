@@ -1,3 +1,4 @@
+using CarRental.Api.DTOs;
 using CarRental.API.DTOs;
 using CarRental.API.Validation.Validators;
 using FluentValidation;
@@ -20,6 +21,9 @@ namespace CarRental.API
             builder.Services.AddCarRentalServices();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddTransient<IValidator<CustomerDTO>, CustomerValidator>();
+            //builder.Services.AddTransient<IValidator<AddressDTO>, AddressValidator>();
+            //builder.Services.AddTransient<IValidator<UserDTO>, UserValidator>();
+            builder.Services.AddTransient<IValidator<VehicleDTO>, VehicleValidator>();
 
             var app = builder.Build();
 
