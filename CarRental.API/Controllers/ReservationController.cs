@@ -5,6 +5,7 @@ using CarRental.API.Repositories.Interfaces;
 using CarRental.API.Validation;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CarRental.Api.Controllers
 {
@@ -16,14 +17,16 @@ namespace CarRental.Api.Controllers
         private ICustomerRepository _customerRepository;
         private IVehicleRepository _vehicleRepository;
         private IMapper _mapper;
+        private IValidator<ReservationDTO> _reservationValidator;
 
         public ReservationController(IReservationRepository reservationRepo, ICustomerRepository customerRepo,
-            IVehicleRepository vehicleRepo, IMapper mapper)
+            IVehicleRepository vehicleRepo, IMapper mapper, IValidator<ReservationDTO> reservationValidator)
         {
             _reservationRepository = reservationRepo;
             _customerRepository = customerRepo;
             _vehicleRepository = vehicleRepo;
             _mapper = mapper;
+            _reservationValidator = reservationValidator;
         }
 
         [HttpGet]
@@ -47,126 +50,99 @@ namespace CarRental.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateReservationAsync(ReservationDTO reservationDTO)
         {
-            // Перевірка, що DateTo не є раніше за DateFrom
-            if (reservationDTO.DateTo <= reservationDTO.DateFrom)
-            {
-                return BadRequest("The end date must be after the start date.");
-            }
-            // Перевірка, що резервація починається не раніше, ніж за один день від поточного часу
-            if (reservationDTO.DateFrom <= DateTime.Now.AddDays(1))
-            {
-                return BadRequest("Reservations must be made at least 1 day in advance.");
-            }
-            // Перевірка, що мінімальна тривалість резервації складає 3 дні
-            if ((reservationDTO.DateTo - reservationDTO.DateFrom).TotalDays < 3)
-            {
-                return BadRequest("The reservation period must be at least 3 days.");
-            }
-            // Отримання всіх існуючих резервацій клієнта            
             var existingReservations = await _reservationRepository.GetAllReservationsAsync();
-            // Фільтрація резервацій за клієнтом
-            var customerReservations = existingReservations
-                .Where(r => r.CustomerID == reservationDTO.CustomerID)
-                .ToList();
-            // Перевірка, чи є більше 3 активних резервацій у періоді нового резервування
-            var overlappingReservations = existingReservations
-                .Where(r => r.DateFrom < reservationDTO.DateTo && r.DateTo > reservationDTO.DateFrom)
-                .Count();
-            if (overlappingReservations >= 3)
+
+            var reservedVehicleBySameCustomer = existingReservations.FirstOrDefault(r => r.VehicleID == reservationDTO.VehicleID
+                && r.CustomerID == reservationDTO.CustomerID && r.DateFrom < reservationDTO.DateTo && r.DateTo > reservationDTO.DateFrom);
+
+            var reservedVehicleByOther = existingReservations.FirstOrDefault(r => r.VehicleID == reservationDTO.VehicleID
+                && r.CustomerID != reservationDTO.CustomerID && r.DateFrom < reservationDTO.DateTo && r.DateTo > reservationDTO.DateFrom);
+
+            var context = new ValidationContext<ReservationDTO>(reservationDTO);
+
+            if (reservedVehicleBySameCustomer != null)
             {
-                return BadRequest("The customer cannot have more than 3 reservations during the same time period.");
+                context.RootContextData["ReservationVehicleConflict"] = "sameCustomer";
+                context.RootContextData["ExistingReservationDates"] = $"{reservedVehicleBySameCustomer.DateFrom:yyyy-MM-dd} to {reservedVehicleBySameCustomer.DateTo:yyyy-MM-dd}";
             }
-            // Перевірка, чи не зарезервоване авто іншим клієнтом у цей період
-            var overlappingVehicleReservations = existingReservations
-                .Where(r => r.VehicleID == reservationDTO.VehicleID
-                            && r.CustomerID != reservationDTO.CustomerID // інші клієнти
-                            && r.DateFrom < reservationDTO.DateTo
-                            && r.DateTo > reservationDTO.DateFrom)
-                .Any();
-            if (overlappingVehicleReservations)
+            else if (reservedVehicleByOther != null)
             {
-                return BadRequest("The vehicle is already reserved by another customer during the selected period.");
+                context.RootContextData["ReservationVehicleConflict"] = "otherCustomer";
+                context.RootContextData["ExistingReservationDates"] = $"{reservedVehicleByOther.DateFrom:yyyy-MM-dd} to {reservedVehicleByOther.DateTo:yyyy-MM-dd}";
             }
-            // Мапимо DTO на модель Reservation
+            context.RootContextData["ExistingReservations"] = existingReservations;
+            context.RootContextData["OperationType"] = "create";
+
+            var validationResult = _reservationValidator.Validate(context);
+
+            if (!validationResult.IsValid)
+            {
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
+            }
+
             var reservation = _mapper.Map<Reservation>(reservationDTO);
-            // Додаємо резервацію в репозиторій
             var createdReservation = await _reservationRepository.AddReservationAsync(reservation);
-            // Мапимо результат на DTO для відповіді
             var resultDTO = _mapper.Map<ReservationDTO>(createdReservation);
-            // Повертаємо результат з кодом 200 OK
+
             return Ok(resultDTO);
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateReservationAsync(int id, ReservationDTO reservationDTO)
         {
-            // Отримуємо існуючу резервацію для оновлення
             var existingReservation = await _reservationRepository.GetReservationByIdAsync(id);
             if (existingReservation == null)
             {
-                return NotFound("The reservation does not exist.");
+                return NotFound("The reservation doesn't exist.");
             }
 
-            // Перевірка, що DateTo не є раніше за DateFrom
-            if (reservationDTO.DateTo <= reservationDTO.DateFrom)
+            if (reservationDTO.CustomerID == 0)
             {
-                return BadRequest("The end date must be after the start date.");
+                reservationDTO.CustomerID = existingReservation.CustomerID;
             }
 
-            // Перевірка, що резервація починається не раніше, ніж за один день від поточного часу
-            if (reservationDTO.DateFrom <= DateTime.Now.AddDays(1))
-            {
-                return BadRequest("Reservations must be made at least 1 day in advance.");
-            }
-
-            // Перевірка, що мінімальна тривалість резервації складає 3 дні
-            if ((reservationDTO.DateTo - reservationDTO.DateFrom).TotalDays < 3)
-            {
-                return BadRequest("The reservation period must be at least 3 days.");
-            }
-
-            // Отримання всіх існуючих резервацій, крім тієї, яку ми оновлюємо
             var existingReservations = (await _reservationRepository.GetAllReservationsAsync())
                 .Where(r => r.ReservationID != id)
                 .ToList();
 
-            // Перевірка кількості активних резервацій клієнта в період нового резервування
-            var customerReservations = existingReservations
-                .Where(r => r.CustomerID == reservationDTO.CustomerID)
-                .ToList();
+            var reservedVehicleBySameCustomer = existingReservations.FirstOrDefault(r => r.VehicleID == reservationDTO.VehicleID
+                && r.CustomerID == reservationDTO.CustomerID && r.DateFrom <= reservationDTO.DateTo && r.DateTo >= reservationDTO.DateFrom);
 
-            var overlappingCustomerReservations = customerReservations
-                .Where(r => r.DateFrom < reservationDTO.DateTo && r.DateTo > reservationDTO.DateFrom)
-                .Count();
+            var reservedVehicleByOther = existingReservations.FirstOrDefault(r => r.VehicleID == reservationDTO.VehicleID
+                && r.CustomerID != reservationDTO.CustomerID && r.DateFrom < reservationDTO.DateTo && r.DateTo > reservationDTO.DateFrom);
 
-            if (overlappingCustomerReservations >= 3)
+            var context = new ValidationContext<ReservationDTO>(reservationDTO);
+
+            if (reservedVehicleBySameCustomer != null)
             {
-                return BadRequest("The customer cannot have more than 3 reservations during the same time period.");
+                context.RootContextData["ReservationVehicleConflict"] = "sameCustomer";
+                context.RootContextData["ExistingReservationDates"] = $"{reservedVehicleBySameCustomer.DateFrom:yyyy-MM-dd} to {reservedVehicleBySameCustomer.DateTo:yyyy-MM-dd}";
+            }
+            else if (reservedVehicleByOther != null)
+            {
+                context.RootContextData["ReservationVehicleConflict"] = "otherCustomer";
+                context.RootContextData["ExistingReservationDates"] = $"{reservedVehicleByOther.DateFrom:yyyy-MM-dd} to {reservedVehicleByOther.DateTo:yyyy-MM-dd}";
             }
 
-            // Перевірка, чи не зарезервоване авто іншим клієнтом у цей період
-            var overlappingVehicleReservations = existingReservations
-                .Where(r => r.VehicleID == reservationDTO.VehicleID
-                            && r.CustomerID != reservationDTO.CustomerID // інші клієнти
-                            && r.DateFrom < reservationDTO.DateTo
-                            && r.DateTo > reservationDTO.DateFrom)
-                .Any();
+            context.RootContextData["ExistingReservations"] = existingReservations;
+            context.RootContextData["OperationType"] = "update";
 
-            if (overlappingVehicleReservations)
+            var validationResult = _reservationValidator.Validate(context);
+
+            if (!validationResult.IsValid)
             {
-                return BadRequest("The vehicle is already reserved by another customer during the selected period.");
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
             }
 
-            // Мапимо DTO на модель Reservation
             var updatedReservation = _mapper.Map(reservationDTO, existingReservation);
+            updatedReservation.ReservationID = id;
+            updatedReservation.CustomerID = existingReservation.CustomerID;
 
-            // Оновлюємо резервацію в репозиторії
             var result = await _reservationRepository.UpdateReservationAsync(id, updatedReservation);
-
-            // Мапимо результат на DTO для відповіді
             var resultDTO = _mapper.Map<ReservationDTO>(result);
 
-            // Повертаємо результат з кодом 200 OK
             return Ok(resultDTO);
         }
 
@@ -178,11 +154,19 @@ namespace CarRental.Api.Controllers
             {
                 return NotFound();
             }
-            // Перевірка, що до початку резервації є більше ніж 2 дні
-            if (reservation.DateFrom < DateTime.Now.AddDays(2))
+
+            var reservationDTO = _mapper.Map<ReservationDTO>(reservation);
+
+            var context = new ValidationContext<ReservationDTO>(reservationDTO);
+            context.RootContextData["OperationType"] = "delete";
+
+            var validationResult = _reservationValidator.Validate(context);
+            if (!validationResult.IsValid)
             {
-                return BadRequest("The reservation cannot be canceled for less than 2 day before.");
+                var errorResponse = ValidationErrorHandler.ErrorHandler(validationResult.Errors);
+                return BadRequest(errorResponse);
             }
+
             await _reservationRepository.DeleteReservationAsync(id);
             return Ok();
         }

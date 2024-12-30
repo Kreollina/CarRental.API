@@ -24,6 +24,7 @@ namespace CarRental.API
             //builder.Services.AddTransient<IValidator<AddressDTO>, AddressValidator>();
             //builder.Services.AddTransient<IValidator<UserDTO>, UserValidator>();
             builder.Services.AddTransient<IValidator<VehicleDTO>, VehicleValidator>();
+            builder.Services.AddTransient<IValidator<ReservationDTO>, ReservationValidator>();
 
             var app = builder.Build();
 
