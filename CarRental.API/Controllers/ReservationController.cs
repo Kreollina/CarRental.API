@@ -42,7 +42,7 @@ namespace CarRental.Api.Controllers
             var reservation = await _reservationRepository.GetReservationByIdAsync(id);
             if (reservation == null)
             {
-                return NotFound();
+                return NotFound("The reservation doesn't exist.");
             }
             return Ok(reservation);
         }
@@ -152,7 +152,7 @@ namespace CarRental.Api.Controllers
             var reservation = await _reservationRepository.GetReservationByIdAsync(id);
             if (reservation == null)
             {
-                return NotFound();
+                return NotFound("The reservation doesn't exist.");
             }
 
             var reservationDTO = _mapper.Map<ReservationDTO>(reservation);
