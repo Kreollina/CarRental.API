@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using CarRental.API.Controllers;
+using CarRental.API.DTOs;
 using CarRental.API.Models;
 using CarRental.API.Profiles;
 using CarRental.API.Repositories;
 using CarRental.API.Repositories.Interfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 
@@ -22,7 +24,9 @@ namespace CarRental.API.Test.Controllers
             });
 
             var mapper = mappingConfig.CreateMapper();
-            var controller = new CustomerController(customerRepository, mapper);
+
+            var customerValidator = Substitute.For<IValidator<CustomerDTO>>();
+            var controller = new CustomerController(customerRepository, mapper, customerValidator);
 
             //Act
             var result = await controller.GetAllCustomersAsync();
@@ -58,7 +62,8 @@ namespace CarRental.API.Test.Controllers
 
             var mapper = Substitute.For<IMapper>();
 
-            var controller = new CustomerController(customerRepository, mapper);
+            var customerValidator = Substitute.For<IValidator<CustomerDTO>>();
+            var controller = new CustomerController(customerRepository, mapper, customerValidator);
 
             //Act
             var result = await controller.GetAllCustomersAsync();
@@ -85,7 +90,8 @@ namespace CarRental.API.Test.Controllers
             });
 
             var mapper = mappingConfig.CreateMapper();
-            var controller = new CustomerController(customerRepository, mapper);
+            var customerValidator = Substitute.For<IValidator<CustomerDTO>>();
+            var controller = new CustomerController(customerRepository, mapper, customerValidator);
 
             //Act
             var result = await controller.GetCustomerByIdAsync(1);
@@ -116,7 +122,8 @@ namespace CarRental.API.Test.Controllers
             customerRepository.GetCustomerByIdAsync(1).Returns(expectedCustomer);
             var mapper = Substitute.For<IMapper>();
 
-            var controller = new CustomerController(customerRepository, mapper);
+            var customerValidator = Substitute.For<IValidator<CustomerDTO>>();
+            var controller = new CustomerController(customerRepository, mapper, customerValidator);
 
             //Act
             var result = await controller.GetCustomerByIdAsync(1);
