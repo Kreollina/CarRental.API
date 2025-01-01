@@ -1,10 +1,51 @@
-﻿using CarRental.API.Models;
+﻿using CarRental.API.Entities;
+using CarRental.API.Enums;
+using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 
 namespace CarRental.API.Repositories
 {
     public class CustomerRepository : ICustomerRepository
     {
+        public static List<User> Users = new List<User>
+        {
+            new User
+            {
+                UserID = 1,
+                Email = "admin@mail.net",
+                Password = "1111",
+                Role = UserRole.Admin
+            },
+            new User
+            {
+                UserID = 2,
+                Email = "user@mail.net",
+                Password = "2222",
+                Role = UserRole.User
+            },
+            new User
+            {
+                UserID = 3,
+                Email = "Roberto.Erickson@gmail.com",
+                Password = "3333",
+                Role = UserRole.User
+            },
+            new User
+            {
+                UserID = 4,
+                Email = "Ken.Tamburello@mail.net",
+                Password = "12345",
+                Role = UserRole.User
+            },
+            new User
+            {
+                UserID = 5,
+                Email = "Terri.Walters@mail.net",
+                Password = "54321",
+                Role = UserRole.User
+            }
+        };
+
         public static List<Customer> Customers = new List<Customer>
         {
             new Customer
@@ -21,12 +62,7 @@ namespace CarRental.API.Repositories
                     Street = "Grenzacherweg 0123",
                     PostalCode= "10122"
                 },
-                User =  new User
-                {
-                    UserID = 1,
-                    Email = "Ken.Tamburello@gmail.com",
-                    Password = "CCKOT"
-                }
+                User = Users[3]
             },
             new Customer
             {
@@ -42,12 +78,7 @@ namespace CarRental.API.Repositories
                     Street = "Gran Vía, 4567",
                     PostalCode= "10071"
                 },
-                User =  new User
-                {
-                    UserID = 2,
-                    Email = "Terri.Walters@gmail.com",
-                    Password = "SIUIH"
-                }
+                User = Users[4]
             },
             new Customer
             {
@@ -63,12 +94,7 @@ namespace CarRental.API.Repositories
                     Street = "Erling Skakkes gate 2345",
                     PostalCode= "10123"
                 },
-                User =  new User
-                {
-                    UserID = 3,
-                    Email = "Roberto.Erickson@gmail.com",
-                    Password = "TMXGN"
-                }
+                User =  Users[2]
             },
             new Customer
             {
@@ -84,12 +110,7 @@ namespace CarRental.API.Repositories
                     Street = "9012 Suffolk Ln.",
                     PostalCode= "10078"
                 },
-                User =  new User
-                {
-                    UserID = 4,
-                    Email = "Rob.Goldberg@gmail.com",
-                    Password = "LCOUJ"
-                }
+                User =  Users[1]
             },
             new Customer
             {
@@ -105,12 +126,7 @@ namespace CarRental.API.Repositories
                     Street = "4567 Wadhurst Rd.",
                     PostalCode= "10088"
                 },
-                User =  new User
-                {
-                    UserID = 5,
-                    Email = "Gail.Miller@gmail.com",
-                    Password = "AHPOP"
-                }
+                User =  Users[0]
             }
         };
 
@@ -121,11 +137,6 @@ namespace CarRental.API.Repositories
             customer.User.UserID = Customers.Select(c => c.User.UserID).DefaultIfEmpty(0).Max() + 1;
             Customers.Add(customer);
             return await Task.FromResult(customer);
-        }
-
-        public void ClearCashe()
-        {
-            //Test method
         }
 
         public async Task DeleteCustomerAsync(int id)

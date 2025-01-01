@@ -4,6 +4,7 @@ using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using CarRental.API.Validation;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRental.Api.Controllers
@@ -24,6 +25,7 @@ namespace CarRental.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> GetAllVehicleAsync()
         {
             var vehicles = await _vehicleRepository.GetVehiclesAsync();
@@ -31,6 +33,7 @@ namespace CarRental.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> GetVehicleByIdAsync(int id)
         {
             var vehicle = await _vehicleRepository.GetVehicleByIdAsync(id);
@@ -40,7 +43,9 @@ namespace CarRental.Api.Controllers
             }
             return Ok(vehicle);
         }
+
         [HttpPost]
+        [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> AddVehicleAsync(VehicleDTO vehicleDTO)
         {
             var context = new ValidationContext<VehicleDTO>(vehicleDTO);
@@ -57,7 +62,9 @@ namespace CarRental.Api.Controllers
             var newVehicle = _mapper.Map<VehicleDTO>(addVehicle);
             return Ok(newVehicle);
         }
+
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> DeleteVehicleAsync(int id)
         {
             var vehicle = await _vehicleRepository.GetVehicleByIdAsync(id);

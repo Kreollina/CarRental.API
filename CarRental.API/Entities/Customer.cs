@@ -1,4 +1,6 @@
-﻿namespace CarRental.API.Models
+﻿using CarRental.API.Entities;
+
+namespace CarRental.API.Models
 {
     public class Customer
     {
