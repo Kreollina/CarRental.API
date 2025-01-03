@@ -87,6 +87,17 @@ namespace CarRental.API
                 options.AddPolicy("AdminAndUserPolicy", policy => policy.RequireRole(UserRole.User.ToString(), UserRole.Admin.ToString()));
             });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAnyOrigin",
+                    policy =>
+                    {
+                        policy.WithOrigins("*")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -102,6 +113,7 @@ namespace CarRental.API
             app.UseAuthorization();
 
             app.MapControllers().RequireAuthorization();
+            app.UseCors("AllowAnyOrigin");
 
             app.Run();
         }
