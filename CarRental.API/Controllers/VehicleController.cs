@@ -24,7 +24,7 @@ namespace CarRental.Api.Controllers
             _vehicleValidator = vehicleValidator;
         }
 
-        [HttpGet]
+        [HttpGet("Vehicles")]
         [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> GetAllVehicleAsync()
         {
@@ -32,7 +32,7 @@ namespace CarRental.Api.Controllers
             return Ok(vehicles);
         }
 
-        [HttpGet("{id:int}")]
+        [HttpGet("Vehicle{id:int}")]
         [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> GetVehicleByIdAsync(int id)
         {
@@ -44,7 +44,7 @@ namespace CarRental.Api.Controllers
             return Ok(vehicle);
         }
 
-        [HttpPost]
+        [HttpPost("NewVehicle")]
         [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> AddVehicleAsync(VehicleDTO vehicleDTO)
         {
@@ -63,7 +63,7 @@ namespace CarRental.Api.Controllers
             return Ok(newVehicle);
         }
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("RemoveVehicle{id:int}")]
         [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> DeleteVehicleAsync(int id)
         {

@@ -4,6 +4,7 @@ using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using CarRental.API.Validation;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarRental.API.Controllers
@@ -23,7 +24,8 @@ namespace CarRental.API.Controllers
             _customerValidator = customerValidator;
         }
 
-        [HttpGet]
+        [HttpGet("Customers")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> GetAllCustomersAsync()
         {
             var customers = await _customerRepository.GetCustomersAsync();
@@ -34,7 +36,8 @@ namespace CarRental.API.Controllers
             return Ok(customers);
         }
 
-        [HttpGet("{id:int}")]
+        [HttpGet("Customer{id:int}")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> GetCustomerByIdAsync(int id)
         {
             var customer = await _customerRepository.GetCustomerByIdAsync(id);
@@ -45,7 +48,8 @@ namespace CarRental.API.Controllers
             return Ok(customer);
         }
 
-        [HttpPost]
+        [HttpPost("NewCustomer")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> CreateCustomerAsync(CustomerDTO customerDTO)
         {
             var context = new ValidationContext<CustomerDTO>(customerDTO);
@@ -63,7 +67,8 @@ namespace CarRental.API.Controllers
             return Ok(newCustomer);
         }
 
-        [HttpPut("{id:int}")]
+        [HttpPut("ModifyCustomer{id:int}")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> UpdateCustomerAsync(int id, CustomerDTO customerDTO)
         {
             var customer = await _customerRepository.GetCustomerByIdAsync(id);
@@ -87,7 +92,8 @@ namespace CarRental.API.Controllers
             return Ok(newCustomerDTO);
         }
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("RemoveCustomer{id:int}")]
+        [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> DeleteCustomerAsync(int id)
         {
             var customer = await _customerRepository.GetCustomerByIdAsync(id);

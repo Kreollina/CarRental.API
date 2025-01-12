@@ -4,6 +4,7 @@ using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using CarRental.API.Validation;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -29,15 +30,17 @@ namespace CarRental.Api.Controllers
             _reservationValidator = reservationValidator;
         }
 
-        [HttpGet]
+        [HttpGet("AllReservations")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> GetAllReservationsAsync()
         {
             var reservations = await _reservationRepository.GetAllReservationsAsync();
             return Ok(reservations);
         }
 
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetreservationByIdAsync(int id)
+        [HttpGet("Reservation{id:int}")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
+        public async Task<IActionResult> GetReservationByIdAsync(int id)
         {
             var reservation = await _reservationRepository.GetReservationByIdAsync(id);
             if (reservation == null)
@@ -47,7 +50,8 @@ namespace CarRental.Api.Controllers
             return Ok(reservation);
         }
 
-        [HttpPost]
+        [HttpPost("NewReservation")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> CreateReservationAsync(ReservationDTO reservationDTO)
         {
             var existingReservations = await _reservationRepository.GetAllReservationsAsync();
@@ -88,7 +92,8 @@ namespace CarRental.Api.Controllers
             return Ok(resultDTO);
         }
 
-        [HttpPut("{id:int}")]
+        [HttpPut("ModifyReservation{id:int}")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> UpdateReservationAsync(int id, ReservationDTO reservationDTO)
         {
             var existingReservation = await _reservationRepository.GetReservationByIdAsync(id);
@@ -146,7 +151,8 @@ namespace CarRental.Api.Controllers
             return Ok(resultDTO);
         }
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("RemoveReservation{id:int}")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
         public async Task<IActionResult> CancelReservationAsync(int id)
         {
             var reservation = await _reservationRepository.GetReservationByIdAsync(id);
@@ -170,6 +176,5 @@ namespace CarRental.Api.Controllers
             await _reservationRepository.DeleteReservationAsync(id);
             return Ok();
         }
-
     }
 }
