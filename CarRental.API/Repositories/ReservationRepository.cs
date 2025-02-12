@@ -11,8 +11,8 @@ namespace CarRental.API.Repositories
             {
                 ReservationID= 1,
                 Description= "discount 5%",
-                DateFrom = DateTime.Now,
-                DateTo = DateTime.Now.AddHours(8),
+                DateFrom = DateTime.Now.AddDays(5),
+                DateTo = DateTime.Now.AddDays(8).AddHours(8),
                 CustomerID = 4, VehicleID = 3
             },
             new Reservation

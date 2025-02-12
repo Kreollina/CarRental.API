@@ -32,7 +32,7 @@ namespace CarRental.API.Validation.Validators
                 }
             });
 
-            // Перевірка, що мінімальна тривалість резервації складає 3 дні
+            // Перевірка, що мінімальна тривалість резервації складає 3 дні (змінити, щоб працювало тільки для методів Update і Create)
             RuleFor(x => x.DateTo).Must((reservationDTO, dateTo) => (dateTo - reservationDTO.DateFrom).TotalDays >= 3)
                .WithMessage("The reservation period must be at least 3 days.");
 
