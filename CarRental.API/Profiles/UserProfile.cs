@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CarRental.API.DTOs;
 using CarRental.API.Entities;
+using CarRental.API.Profiles.Resolvers;
 
 namespace CarRental.API.Profiles
 {
@@ -8,7 +9,8 @@ namespace CarRental.API.Profiles
     {
         public UserProfile()
         {
-            CreateMap<User, UserDTO>().ReverseMap();
+            CreateMap<User, UserDTO>().ForMember(dest => dest.Password, opt => opt.MapFrom<PasswordResolver>());
+            CreateMap<UserDTO, User>();
         }
     }
 }

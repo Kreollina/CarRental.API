@@ -8,7 +8,8 @@ namespace CarRental.API.Profiles
     {
         public CustomerProfile()
         {
-            CreateMap<Customer, CustomerDTO>().ReverseMap();
+            CreateMap<Customer, CustomerDTO>().ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User));
+            CreateMap<CustomerDTO, Customer>();
         }
     }
 }

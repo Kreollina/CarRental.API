@@ -33,7 +33,8 @@ namespace CarRental.API.Controllers
             {
                 return NotFound("No customers found.");
             }
-            return Ok(customers);
+            var customersDTO = _mapper.Map<List<CustomerDTO>>(customers);
+            return Ok(customersDTO);
         }
 
         [HttpGet("Customer{id:int}")]
@@ -45,7 +46,8 @@ namespace CarRental.API.Controllers
             {
                 return NotFound();
             }
-            return Ok(customer);
+            var customerDTO = _mapper.Map<CustomerDTO>(customer);
+            return Ok(customerDTO);
         }
 
         [HttpPost("NewCustomer")]
