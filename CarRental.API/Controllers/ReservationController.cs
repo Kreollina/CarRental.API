@@ -3,10 +3,10 @@ using CarRental.API.DTOs;
 using CarRental.API.Models;
 using CarRental.API.Repositories.Interfaces;
 using CarRental.API.Validation;
+using ClosedXML.Excel;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace CarRental.Api.Controllers
 {
@@ -36,6 +36,47 @@ namespace CarRental.Api.Controllers
         {
             var reservations = await _reservationRepository.GetAllReservationsAsync();
             return Ok(reservations);
+        }
+
+        [HttpGet("ExportToExcel")]
+        [Authorize(Policy = "AdminAndUserPolicy")]
+        public async Task<IActionResult> ExportToExcelAsync()
+        {
+            var reservations = await _reservationRepository.GetAllReservationsAsync(); 
+            
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Reservations");
+
+            var headers = new[] { "ReservationID", "Description", "DateFrom", "DateTo", "CustomerID", "VehicleID" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = worksheet.Cell(1, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.Glaucous;
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+            }
+
+            int rowIndex = 2;
+            foreach (var reservation in reservations)
+            {
+                worksheet.Cell(rowIndex, 1).Value = reservation.ReservationID;
+                worksheet.Cell(rowIndex, 2).Value = reservation.Description;
+                worksheet.Cell(rowIndex, 3).Value = reservation.DateFrom;
+                worksheet.Cell(rowIndex, 4).Value = reservation.DateTo;
+                worksheet.Cell(rowIndex, 5).Value = reservation.CustomerID;
+                worksheet.Cell(rowIndex, 6).Value = reservation.VehicleID;
+                rowIndex++;
+            }
+
+            worksheet.ColumnsUsed().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            ms.Position = 0;
+            string fileName = $"Reservations_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+            
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
         [HttpGet("Reservation{id:int}")]
